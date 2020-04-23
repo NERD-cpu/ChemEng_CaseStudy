@@ -171,23 +171,23 @@ if Writting_xdmf:
 
 F_A = ((u_A - u_An)/dt)*v_A*dx + dot(w, grad(u_A))*v_A*dx + \
      eps*D*dot(grad(u_A), grad(v_A))*dx - \
-     cofA*rob*Kinetic_oxy(u_Tn)*u_A*u_B*(np.power(R*u_T, 2)/Uc1)*v_A*dx + \
+     cofA*rob*Kinetic_oxy(u_Tn)*u_A*u_B*(pow(R*u_T, 2)/Uc1)*v_A*dx + \
      Vz*(u_A - CA_in)*v_A*ds(1)
 
 F_B = ((u_B - u_Bn)/dt)*v_B*dx + dot(w, grad(u_B))*v_B*dx + \
      eps*D*dot(grad(u_B), grad(v_B))*dx - \
-     cofB*rob*Kinetic_oxy(u_Tn)*u_A*u_B*(np.power(R*u_T, 2)/Uc1)*v_B*dx + \
+     cofB*rob*Kinetic_oxy(u_Tn)*u_A*u_B*(pow(R*u_T, 2)/Uc1)*v_B*dx + \
      Vz*(u_B - CB_in)*v_B*ds(1)
 
 F_C = ((u_C - u_Cn)/dt)*v_C*dx + dot(w, grad(u_C))*v_C*dx + \
      eps*D*dot(grad(u_C), grad(v_C))*dx - \
-     cofC*rob*Kinetic_oxy(u_Tn)*u_A*u_B*(np.power(R*u_T, 2)/Uc1)*v_C*dx + \
+     cofC*rob*Kinetic_oxy(u_Tn)*u_A*u_B*(pow(R*u_T, 2)/Uc1)*v_C*dx + \
      Vz*(u_C - CC_in)*v_C*ds(1)
 
 F_T = (rof*cpf*(u_T - u_Tn)/dt)*v_T*dx + \
       rof*cpf*dot(w, grad(u_T))*v_T*dx + \
       knt*dot(grad(u_T), grad(v_T))*dx + \
-      deltaH*rob*Kinetic_oxy(u_Tn)*u_A*u_B*(np.power(R*u_T, 2)/Uc1)*v_T*dx + \
+      deltaH*rob*Kinetic_oxy(u_Tn)*u_A*u_B*(pow(R*u_T, 2)/Uc1)*v_T*dx + \
       (rof*cpf*Vz)*(u_T - T_in)*v_T*ds(1) + \
       hw*(u_T - Twall)*v_T*ds(2)
 
