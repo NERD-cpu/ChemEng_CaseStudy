@@ -46,18 +46,38 @@ Writting_xdmf = True  # Data storage for later visualization.
 
 
 """Gmsh mesh format conversion by package Meshio."""
-
 Wri_path = "Gmsh_meshes"
 msh = meshio.read(os.path.join(Wri_path, 'SinglePBR.msh'))
 
-meshio.write(os.path.join(Wri_path, "md_.xdmf"),
-             meshio.Mesh(points=msh.points,
-                         cells={"triangle": msh.cells["triangle"]}))
+line_cells = []
+for cell in msh.cells:
+    if cell.type == "triangle":
+        triangle_cells = cell.data
+    elif  cell.type == "line":
+        if len(line_cells) == 0:
+            line_cells = cell.data
+        else:
+            line_cells = np.vstack([line_cells, cell.data])
 
-meshio.write(os.path.join(Wri_path, "mf_.xdmf"),
-             meshio.Mesh(points=msh.points,
-                         cells={"line": msh.cells["line"]},
-                         cell_data={"line": {"name_to_read": msh.cell_data["line"]["gmsh:physical"]}}))
+line_data = []
+for key in msh.cell_data_dict["gmsh:physical"].keys():
+    if key == "line":
+        if len(line_data) == 0:
+            line_data = msh.cell_data_dict["gmsh:physical"][key]
+        else:
+            line_data = np.vstack([line_data, msh.cell_data_dict["gmsh:physical"][key]])
+    elif key == "triangle":
+        triangle_data = msh.cell_data_dict["gmsh:physical"][key]
+
+
+triangle_mesh = meshio.Mesh(points=msh.points,
+                            cells={"triangle": triangle_cells})
+line_mesh = meshio.Mesh(points=msh.points,
+                        cells=[("line", line_cells)],
+                        cell_data={"name_to_read":[line_data]})
+
+meshio.write(os.path.join(Wri_path, "md_.xdmf"), triangle_mesh)
+meshio.xdmf.write(os.path.join(Wri_path, "mf_.xdmf"), line_mesh)
 
 # Reading mesh data stored in .xdmf files.
 mesh = Mesh()
@@ -86,8 +106,6 @@ u_A, u_B, u_C, u_T = split(u)
 # Retrieve boundaries marks for Robin boundary conditions.
 ds_in = Measure("ds", domain=mesh, subdomain_data=mf, subdomain_id=1)
 ds_wall = Measure("ds", domain=mesh, subdomain_data=mf, subdomain_id=2)
-
-"""___________________________________________________________________________"""
 
 
 """Initial values (t == 0.0)"""
