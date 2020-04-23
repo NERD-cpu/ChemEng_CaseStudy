@@ -30,6 +30,7 @@ from ufl.operators import exp
 import meshio
 
 # General-purpose packages in computer science.
+import os
 import numpy as np
 import math as mt
 
@@ -40,31 +41,31 @@ num_steps = 100              # Number of time steps
 delta_t = tf / num_steps     # Time step size, sec
 dt = Constant(delta_t)
 
-R_path = 'Results/'
+R_path = 'Results'
 Writting_xdmf = True  # Data storage for later visualization.
 
 
 """Gmsh mesh format conversion by package Meshio."""
 
-Wri_path = "./Gmsh_meshes/"
-msh = meshio.read(Wri_path+'SinglePBR.msh')
+Wri_path = "Gmsh_meshes"
+msh = meshio.read(os.path.join(Wri_path, 'SinglePBR.msh'))
 
-meshio.write(Wri_path+"md_.xdmf",
+meshio.write(os.path.join(Wri_path, "md_.xdmf"),
              meshio.Mesh(points=msh.points,
                          cells={"triangle": msh.cells["triangle"]}))
 
-meshio.write(Wri_path+"mf_.xdmf",
+meshio.write(os.path.join(Wri_path, "mf_.xdmf"),
              meshio.Mesh(points=msh.points,
                          cells={"line": msh.cells["line"]},
                          cell_data={"line": {"name_to_read": msh.cell_data["line"]["gmsh:physical"]}}))
 
 # Reading mesh data stored in .xdmf files.
 mesh = Mesh()
-with XDMFFile(Wri_path+"md_.xdmf") as infile:
+with XDMFFile(os.path.join(Wri_path, "md_.xdmf")) as infile:
     infile.read(mesh)
 mvc = MeshValueCollection("size_t", mesh, 1)
 
-with XDMFFile(Wri_path+"mf_.xdmf") as infile:
+with XDMFFile(os.path.join(Wri_path, "mf_.xdmf")) as infile:
     infile.read(mvc, "name_to_read")
 mf = cpp.mesh.MeshFunctionSizet(mesh, mvc)
 
@@ -83,7 +84,8 @@ u_A, u_B, u_C, u_T = split(u)
 
 
 # Retrieve boundaries marks for Robin boundary conditions.
-ds = Measure("ds", domain=mesh, subdomain_data=mf)
+ds_in = Measure("ds", domain=mesh, subdomain_data=mf, subdomain_id=1)
+ds_wall = Measure("ds", domain=mesh, subdomain_data=mf, subdomain_id=2)
 
 """___________________________________________________________________________"""
 
@@ -160,36 +162,36 @@ def Kinetic_oxy(Temperature):
 
 if Writting_xdmf:
     # Create XDMF - H5 files for visualization output
-    Root_path = R_path + '/Visual_postprocessing/'
-    xdmffile_A = XDMFFile(Root_path+'CA.xdmf')
-    xdmffile_B = XDMFFile(Root_path+'CB.xdmf')
-    xdmffile_C = XDMFFile(Root_path+'CC.xdmf')
-    xdmffile_D = XDMFFile(Root_path+'CC.xdmf')
-    xdmffile_T = XDMFFile(Root_path+'T.xdmf')
+    Root_path = os.path.join(R_path, 'Visual_postprocessing')
+    xdmffile_A = XDMFFile(os.path.join(Root_path, 'CA.xdmf'))
+    xdmffile_B = XDMFFile(os.path.join(Root_path, 'CB.xdmf'))
+    xdmffile_C = XDMFFile(os.path.join(Root_path, 'CC.xdmf'))
+    xdmffile_D = XDMFFile(os.path.join(Root_path, 'CD.xdmf'))
+    xdmffile_T = XDMFFile(os.path.join(Root_path, 'T.xdmf'))
 
 # Variational problem definition
 
 F_A = ((u_A - u_An)/dt)*v_A*dx + dot(w, grad(u_A))*v_A*dx + \
      eps*D*dot(grad(u_A), grad(v_A))*dx - \
      cofA*rob*Kinetic_oxy(u_Tn)*u_A*u_B*(pow(R*u_T, 2)/Uc1)*v_A*dx + \
-     Vz*(u_A - CA_in)*v_A*ds(1)
+     Vz*(u_A - CA_in)*v_A*ds_in
 
 F_B = ((u_B - u_Bn)/dt)*v_B*dx + dot(w, grad(u_B))*v_B*dx + \
      eps*D*dot(grad(u_B), grad(v_B))*dx - \
      cofB*rob*Kinetic_oxy(u_Tn)*u_A*u_B*(pow(R*u_T, 2)/Uc1)*v_B*dx + \
-     Vz*(u_B - CB_in)*v_B*ds(1)
+     Vz*(u_B - CB_in)*v_B*ds_in
 
 F_C = ((u_C - u_Cn)/dt)*v_C*dx + dot(w, grad(u_C))*v_C*dx + \
      eps*D*dot(grad(u_C), grad(v_C))*dx - \
      cofC*rob*Kinetic_oxy(u_Tn)*u_A*u_B*(pow(R*u_T, 2)/Uc1)*v_C*dx + \
-     Vz*(u_C - CC_in)*v_C*ds(1)
+     Vz*(u_C - CC_in)*v_C*ds_in
 
 F_T = (rof*cpf*(u_T - u_Tn)/dt)*v_T*dx + \
       rof*cpf*dot(w, grad(u_T))*v_T*dx + \
       knt*dot(grad(u_T), grad(v_T))*dx + \
       deltaH*rob*Kinetic_oxy(u_Tn)*u_A*u_B*(pow(R*u_T, 2)/Uc1)*v_T*dx + \
-      (rof*cpf*Vz)*(u_T - T_in)*v_T*ds(1) + \
-      hw*(u_T - Twall)*v_T*ds(2)
+      (rof*cpf*Vz)*(u_T - T_in)*v_T*ds_in + \
+      hw*(u_T - Twall)*v_T*ds_wall
 
 F = F_A + F_B + F_C + F_T
 
